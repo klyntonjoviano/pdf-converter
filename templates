@@ -1,0 +1,394 @@
+<!-- templates/index.html -->
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>PDF para Imagens</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f0f2f5;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .card {
+      background: white;
+      border-radius: 16px;
+      padding: 40px;
+      width: 100%;
+      max-width: 560px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+    }
+
+    h1 {
+      font-size: 1.6rem;
+      color: #1a1a2e;
+      margin-bottom: 6px;
+    }
+
+    .subtitle {
+      color: #666;
+      font-size: 0.9rem;
+      margin-bottom: 28px;
+    }
+
+    .drop-zone {
+      border: 2px dashed #c5c9d6;
+      border-radius: 12px;
+      padding: 40px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: #fafbff;
+      margin-bottom: 20px;
+    }
+
+    .drop-zone:hover, .drop-zone.dragover {
+      border-color: #4f46e5;
+      background: #eef2ff;
+    }
+
+    .drop-zone svg {
+      margin-bottom: 12px;
+      color: #4f46e5;
+    }
+
+    .drop-zone p {
+      color: #555;
+      font-size: 0.95rem;
+    }
+
+    .drop-zone span {
+      color: #4f46e5;
+      font-weight: 600;
+    }
+
+    #fileInput { display: none; }
+
+    .file-list {
+      margin-bottom: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .file-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: #f5f6fa;
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 0.88rem;
+      color: #333;
+    }
+
+    .file-item svg { flex-shrink: 0; color: #ef4444; }
+
+    .file-item .size {
+      margin-left: auto;
+      color: #999;
+      font-size: 0.8rem;
+    }
+
+    .options {
+      display: flex;
+      gap: 14px;
+      margin-bottom: 24px;
+    }
+
+    .option-group {
+      flex: 1;
+    }
+
+    label {
+      display: block;
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #444;
+      margin-bottom: 6px;
+    }
+
+    select, input[type="number"] {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1.5px solid #dde0ea;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      color: #333;
+      background: white;
+      outline: none;
+      transition: border 0.2s;
+    }
+
+    select:focus, input[type="number"]:focus {
+      border-color: #4f46e5;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 14px;
+      background: #4f46e5;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+    }
+
+    .btn:hover { background: #4338ca; }
+    .btn:active { transform: scale(0.98); }
+    .btn:disabled { background: #a5b4fc; cursor: not-allowed; }
+
+    .progress-wrap {
+      margin-top: 20px;
+      display: none;
+    }
+
+    .progress-bar-bg {
+      background: #e5e7eb;
+      border-radius: 999px;
+      height: 8px;
+      overflow: hidden;
+      margin-bottom: 8px;
+    }
+
+    .progress-bar {
+      height: 100%;
+      background: #4f46e5;
+      border-radius: 999px;
+      width: 0%;
+      transition: width 0.4s;
+    }
+
+    .progress-label {
+      font-size: 0.85rem;
+      color: #555;
+      text-align: center;
+    }
+
+    .result {
+      margin-top: 20px;
+      display: none;
+    }
+
+    .result-box {
+      background: #f0fdf4;
+      border: 1.5px solid #86efac;
+      border-radius: 10px;
+      padding: 16px 20px;
+      text-align: center;
+    }
+
+    .result-box p {
+      color: #166534;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+
+    .btn-download {
+      display: inline-block;
+      padding: 10px 24px;
+      background: #16a34a;
+      color: white;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 0.9rem;
+      transition: background 0.2s;
+    }
+
+    .btn-download:hover { background: #15803d; }
+
+    .errors {
+      margin-top: 12px;
+      background: #fef2f2;
+      border: 1.5px solid #fca5a5;
+      border-radius: 8px;
+      padding: 12px 16px;
+    }
+
+    .errors p {
+      color: #991b1b;
+      font-size: 0.85rem;
+      margin-bottom: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>PDF → Imagens</h1>
+    <p class="subtitle">Faça upload de um ou mais PDFs e baixe todas as páginas como imagens.</p>
+
+    <div class="drop-zone" id="dropZone">
+      <svg width="40" height="40" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M12 16v-8m0 0-3 3m3-3 3 3M4.5 19.5h15A2.25 2.25 0 0 0 21.75 17V7.5A2.25 2.25 0 0 0 19.5 5.25h-3.379a1.5 1.5 0 0 1-1.06-.44L13.94 3.69A1.5 1.5 0 0 0 12.88 3.25H4.5A2.25 2.25 0 0 0 2.25 5.5V17A2.25 2.25 0 0 0 4.5 19.5Z"/>
+      </svg>
+      <p>Arraste seus PDFs aqui ou <span>clique para selecionar</span></p>
+      <input type="file" id="fileInput" multiple accept=".pdf" />
+    </div>
+
+    <div class="file-list" id="fileList"></div>
+
+    <div class="options">
+      <div class="option-group">
+        <label for="format">Formato</label>
+        <select id="format">
+          <option value="PNG">PNG</option>
+          <option value="JPEG">JPEG</option>
+          <option value="WEBP">WEBP</option>
+        </select>
+      </div>
+      <div class="option-group">
+        <label for="dpi">DPI (qualidade)</label>
+        <input type="number" id="dpi" value="200" min="72" max="600" step="50"/>
+      </div>
+    </div>
+
+    <button class="btn" id="convertBtn" onclick="convert()">Converter e Baixar</button>
+
+    <div class="progress-wrap" id="progressWrap">
+      <div class="progress-bar-bg">
+        <div class="progress-bar" id="progressBar"></div>
+      </div>
+      <p class="progress-label" id="progressLabel">Processando...</p>
+    </div>
+
+    <div class="result" id="result"></div>
+  </div>
+
+  <script>
+    const dropZone = document.getElementById("dropZone");
+    const fileInput = document.getElementById("fileInput");
+    const fileList = document.getElementById("fileList");
+    let selectedFiles = [];
+
+    dropZone.addEventListener("click", () => fileInput.click());
+
+    dropZone.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      dropZone.classList.add("dragover");
+    });
+
+    dropZone.addEventListener("dragleave", () => dropZone.classList.remove("dragover"));
+
+    dropZone.addEventListener("drop", (e) => {
+      e.preventDefault();
+      dropZone.classList.remove("dragover");
+      addFiles(e.dataTransfer.files);
+    });
+
+    fileInput.addEventListener("change", () => addFiles(fileInput.files));
+
+    function addFiles(files) {
+      for (const file of files) {
+        if (file.type === "application/pdf" && !selectedFiles.find(f => f.name === file.name)) {
+          selectedFiles.push(file);
+        }
+      }
+      renderFileList();
+    }
+
+    function removeFile(index) {
+      selectedFiles.splice(index, 1);
+      renderFileList();
+    }
+
+    function formatSize(bytes) {
+      if (bytes < 1024) return bytes + " B";
+      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+      return (bytes / (1024 * 1024)).toFixed(1) + " MB";
+    }
+
+    function renderFileList() {
+      fileList.innerHTML = "";
+      selectedFiles.forEach((file, i) => {
+        const item = document.createElement("div");
+        item.className = "file-item";
+        item.innerHTML = `
+          <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z"/>
+          </svg>
+          <span>${file.name}</span>
+          <span class="size">${formatSize(file.size)}</span>
+          <svg onclick="removeFile(${i})" width="16" height="16" fill="none" stroke="#999" stroke-width="2" viewBox="0 0 24 24" style="cursor:pointer;margin-left:4px">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/>
+          </svg>
+        `;
+        fileList.appendChild(item);
+      });
+    }
+
+    async function convert() {
+      if (selectedFiles.length === 0) {
+        alert("Selecione ao menos um arquivo PDF.");
+        return;
+      }
+
+      const btn = document.getElementById("convertBtn");
+      const progressWrap = document.getElementById("progressWrap");
+      const progressBar = document.getElementById("progressBar");
+      const progressLabel = document.getElementById("progressLabel");
+      const result = document.getElementById("result");
+
+      btn.disabled = true;
+      result.style.display = "none";
+      progressWrap.style.display = "block";
+      progressLabel.textContent = "Enviando arquivos...";
+      progressBar.style.width = "20%";
+
+      const formData = new FormData();
+      selectedFiles.forEach(f => formData.append("files", f));
+      formData.append("format", document.getElementById("format").value);
+      formData.append("dpi", document.getElementById("dpi").value);
+
+      try {
+        progressLabel.textContent = "Convertendo páginas...";
+        progressBar.style.width = "60%";
+
+        const response = await fetch("/convert", { method: "POST", body: formData });
+        const data = await response.json();
+
+        progressBar.style.width = "100%";
+
+        if (data.success) {
+          progressLabel.textContent = "Concluído!";
+          result.style.display = "block";
+
+          let errorsHtml = "";
+          if (data.errors && data.errors.length > 0) {
+            errorsHtml = `<div class="errors">${data.errors.map(e => `<p>⚠ ${e}</p>`).join("")}</div>`;
+          }
+
+          result.innerHTML = `
+            <div class="result-box">
+              <p>✅ ${data.total_pages} página(s) convertida(s) com sucesso!</p>
+              <a class="btn-download" href="/download/${data.session_id}" download>⬇ Baixar ZIP</a>
+            </div>
+            ${errorsHtml}
+          `;
+        } else {
+          progressLabel.textContent = "Erro na conversão.";
+          result.style.display = "block";
+          result.innerHTML = `<div class="errors"><p>${data.error}</p></div>`;
+        }
+      } catch (err) {
+        progressLabel.textContent = "Erro de conexão.";
+        result.style.display = "block";
+        result.innerHTML = `<div class="errors"><p>Erro inesperado: ${err.message}</p></div>`;
+      }
+
+      btn.disabled = false;
+    }
+  </script>
+</body>
+</html>
